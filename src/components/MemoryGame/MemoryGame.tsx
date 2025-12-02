@@ -8,14 +8,14 @@ function MemoryGame() {
     new Set<string>()
   )
   const [bestScore, setBestScore] = useState<number>(0)
-  const [resetKey, setResetKey] = useState<number>(0)
+  const [level, setLevel] = useState<number>(1)
 
   const handleCardClick = (cardName: string) => {
     if (clickedCards.has(cardName)) {
       setBestScore((prevBest) => (score > prevBest ? score : prevBest))
       setClickedCards(new Set())
       setScore(0)
-      setResetKey((prev) => prev + 1)
+      setLevel(1)
       return
     }
 
@@ -29,23 +29,16 @@ function MemoryGame() {
     setScore(newScore)
 
     if (newScore > 0 && newScore % 12 === 0) {
-      handleNextLevel()
+      setLevel((prev) => prev + 1)
+      setClickedCards(new Set())
     }
-  }
-
-  const handleNextLevel = () => {
-    setClickedCards(new Set<string>())
   }
 
   return (
     <>
       <h1>Memory Game</h1>
       <Scoreboard score={score} bestScore={bestScore} />
-      <Cardboard
-        onCardClick={handleCardClick}
-        score={score}
-        resetKey={resetKey}
-      />
+      <Cardboard onCardClick={handleCardClick} level={level} />
     </>
   )
 }

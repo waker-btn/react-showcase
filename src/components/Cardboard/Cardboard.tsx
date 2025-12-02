@@ -3,8 +3,7 @@ import styles from '@/components/Cardboard/Cardboard.module.css'
 
 interface CardboardProps {
   onCardClick: (cardName: string) => void
-  score: number
-  resetKey: number
+  level: number
 }
 
 interface CardProps {
@@ -17,27 +16,10 @@ interface CardProps {
 function Cardboard(props: CardboardProps) {
   const [cardsLoaded, setCardsLoaded] = useState<boolean>(false)
   const [cards, setCards] = useState<{ name: string; imageUrl: string }[]>([])
-  const [level, setLevel] = useState<number>(1)
 
   useEffect(() => {
-    fetchCards(1)
-  }, [])
-
-  useEffect(() => {
-    if (props.score > 0 && props.score % 12 === 0) {
-      const newLevel = level + 1
-      setLevel(newLevel)
-      fetchCards(newLevel)
-    }
-  }, [props.score])
-
-  // Reset game when resetKey changes
-  useEffect(() => {
-    if (props.resetKey > 0) {
-      setLevel(1)
-      fetchCards(1)
-    }
-  }, [props.resetKey])
+    fetchCards(props.level)
+  }, [props.level])
 
   async function fetchCards(currentLevel: number) {
     const controller = new AbortController()
