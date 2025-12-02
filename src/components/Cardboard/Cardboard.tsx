@@ -55,13 +55,13 @@ function Cardboard(props: CardboardProps) {
       const cardsArray = await Promise.all(cardPromises)
       setCards(cardsArray)
       setCardsLoaded(true)
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
         console.log('Fetch was cancelled')
         return
       }
       console.error('Error fetching cards:', error)
-      setCardsLoaded(true) // Still set loaded so UI doesn't hang
+      setCardsLoaded(true)
     }
   }
 
