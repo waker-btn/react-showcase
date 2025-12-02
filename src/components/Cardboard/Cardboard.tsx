@@ -1,0 +1,131 @@
+import { useState, useEffect } from 'react'
+import styles from '@/components/Cardboard/Cardboard.module.css'
+
+interface CardboardProps {
+  onCardClick: (cardName: string) => void
+  score: number
+  resetKey: number
+}
+
+interface CardProps {
+  name: string
+  imageUrl: string
+  shuffle: () => void
+  onCardClick: (cardName: string) => void
+}
+
+function Cardboard(props: CardboardProps) {
+  const [cardsLoaded, setCardsLoaded] = useState<boolean>(false)
+  const [cards, setCards] = useState<{ name: string; imageUrl: string }[]>([])
+  const [level, setLevel] = useState<number>(1)
+
+  useEffect(() => {
+    fetchCards(1)
+  }, [])
+
+  useEffect(() => {
+    if (props.score > 0 && props.score % 12 === 0) {
+      const newLevel = level + 1
+      setLevel(newLevel)
+      fetchCards(newLevel)
+    }
+  }, [props.score])
+
+  // Reset game when resetKey changes
+  useEffect(() => {
+    if (props.resetKey > 0) {
+      setLevel(1)
+      fetchCards(1)
+    }
+  }, [props.resetKey])
+
+  async function fetchCards(currentLevel: number) {
+    const controller = new AbortController()
+    try {
+      setCardsLoaded(false)
+      const res = await fetch(
+        'https://pokeapi.co/api/v2/pokemon?limit=12&offset=' +
+          (currentLevel - 1) * 12,
+        { signal: controller.signal }
+      )
+      if (!res.ok) {
+        throw new Error(`Failed to fetch Pokémon list: ${res.status}`)
+      }
+      const poke = await res.json()
+
+      // Fetch all Pokémon details in parallel instead of sequentially
+      const cardPromises = poke.results.map(
+        async (item: { name: string; url: string }) => {
+          const detailRes = await fetch(item.url, {
+            signal: controller.signal,
+          })
+          if (!detailRes.ok) {
+            throw new Error(`Failed to fetch Pokémon: ${item.name}`)
+          }
+          const detailData = await detailRes.json()
+          return {
+            name: item.name,
+            imageUrl: detailData.sprites.front_default,
+          }
+        }
+      )
+
+      const cardsArray = await Promise.all(cardPromises)
+      setCards(cardsArray)
+      setCardsLoaded(true)
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log('Fetch was cancelled')
+        return
+      }
+      console.error('Error fetching cards:', error)
+      setCardsLoaded(true) // Still set loaded so UI doesn't hang
+    }
+  }
+
+  function shuffleCards() {
+    setCards((prevCards) => {
+      const shuffled = [...prevCards]
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+      }
+      return shuffled
+    })
+  }
+
+  return (
+    <div className={styles.cardboard}>
+      {!cardsLoaded
+        ? 'Loading cards...'
+        : cards.map((card: { name: string; imageUrl: string }) => {
+            return (
+              <Card
+                key={card.name}
+                name={card.name}
+                imageUrl={card.imageUrl}
+                shuffle={shuffleCards}
+                onCardClick={props.onCardClick}
+              />
+            )
+          })}
+    </div>
+  )
+}
+
+function Card(props: CardProps) {
+  return (
+    <div
+      className={styles.card}
+      onClick={() => {
+        props.shuffle()
+        props.onCardClick(props.name)
+      }}
+    >
+      <img src={props.imageUrl} alt={props.name} />
+      <p>{props.name}</p>
+    </div>
+  )
+}
+
+export default Cardboard
